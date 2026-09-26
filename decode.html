@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Result decoder</title>
+  <style>
+    :root { --bg:#f2f2f7; --surface:#fff; --text:#111; --muted:#6b6b76; --line:#e3e3ea; --accent:#2f6df6; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#000; --surface:#1c1c1e; --text:#f5f5f7; --muted:#9a9aa3; --line:#3a3a3c; --accent:#4d8dff; } }
+    body { margin:0; background:var(--bg); color:var(--text); }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    p { color: var(--muted); line-height: 1.45; }
+    textarea { width:100%; min-height: 160px; font: 13px ui-monospace, Menlo, Consolas, monospace; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); box-sizing: border-box; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 18px; }
+    button { font: inherit; font-size: 15px; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+    button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 16px; overflow-x: auto; }
+    h2 { font-size: 17px; margin: 0 0 8px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; }
+    .err { color: #d64545; }
+    a { color: var(--accent); }
+    .legend { font-size: 13px; color: var(--muted); }
+    .legend code { background: var(--surface); padding: 1px 5px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Result decoder</h1>
+  <p>Paste result codes below, one per line (straight from the survey export). Codes start with <code>NRL1;</code>. Everything runs in this page; nothing is uploaded.</p>
+  <textarea id="in" placeholder="NRL1;id=milo27;c=B;p=ios-Safari;sec=1;L=G/real/prompt/4.2/3.1/-;N=U/sim/-/2.0/1.5/-;C=D/real/prompt/3.3/2.2/-;M=G/real/prompt/1.9/1.4/-;feed=14.0;ad=T;r_know=2;r_think=3;r_change=1,3;total=61.0;t=2026-09-26T15:12"></textarea>
+  <div class="row">
+    <button id="btn-decode">Decode</button>
+    <button id="btn-csv" class="ghost" disabled>Download CSV</button>
+    <button id="btn-clear" class="ghost">Clear</button>
+  </div>
+  <p class="legend">
+    Result letters: <code>G</code> allowed · <code>D</code> denied · <code>M</code> closed without answering · <code>P</code> tapped “Not now” · <code>U</code> not supported · <code>X</code> no device · <code>T</code> timed out · <code>E</code> error.
+    Mode: <code>real</code> browser prompt or <code>sim</code> simulated dialog. Prior: what the browser already remembered before asking (<code>prompt</code> = fresh decision).
+    Times are seconds on the in-app screen, then seconds from the prompt appearing to the answer.
+  </p>
+  <div id="errors"></div>
+  <div class="card" id="summary" hidden>
+    <h2>Grant rate by condition</h2>
+    <div id="summary-table"></div>
+  </div>
+  <div class="card" id="rows" hidden>
+    <h2>Decoded rows (one per participant per permission)</h2>
+    <div id="rows-table"></div>
+  </div>
+  <p><a href="index.html">Back to the app</a></p>
+</main>
+<script src="config.js"></script>
+<script src="decode.js"></script>
+</body>
+</html>
