@@ -1,69 +1,72 @@
-/* Study configuration. Edit this file; nothing else needs to change.
-   URL overrides for testing: ?c=A or ?c=B (force a condition), ?sim=1 (simulate every prompt), ?id=CODE (prefill the participant code). */
+/* StudySpot configuration. Edit this file; nothing else needs to change.
+
+   Links for testing, honored only when mode is "preview":
+     ?c=A or ?c=B   force a version
+     ?sim=1         show simulated dialogs instead of the browser's real prompts
+     ?reset=1       forget the saved session in this tab and start over
+   Honored in both modes:
+     ?pilot=1       adds a P to the front of the app code so pilot rows can be dropped */
 
 window.STUDY_CONFIG = {
-  // The fictitious app the participant thinks they are setting up.
-  appName: "Nearlo",
-  tagline: "See what's happening around you",
+  // "preview": for building and testing. Shows a preview banner, allows the test links above,
+  //            and works before the Google Form is set up.
+  // "research": for participants. No banner, no test links, no simulated dialogs, and the page
+  //            refuses to start until formUrl and every entry ID below are filled in.
+  // Any other value is treated as "research".
+  mode: "preview",
 
-  // Permissions to request, in order. Each fires the real browser prompt when the
-  // browser supports it; otherwise a simulated OS-style dialog is shown and logged as simulated.
-  // Available: "location", "notifications", "camera", "microphone", "contacts" (contacts is always simulated).
-  permissions: ["location", "notifications", "camera", "microphone"],
+  appName: "StudySpot",
 
-  // Condition assignment: "random" (default), "alternate" (per device, uses localStorage), "A", or "B".
-  // A = plain request with no reason given. B = the same request with a one-sentence reason.
-  assign: "random",
+  // Requested in this order. The app supports exactly these three.
+  permissions: ["location", "camera", "microphone"],
 
-  // true: never fire real prompts, always use the simulated dialog (for demos and desktops without cameras).
-  simulateAll: false,
-
-  // Show a "Not now" button on the in-app pre-prompt screen (real apps usually do). Logged as P (pre-declined).
-  allowNotNow: true,
-
-  // Seconds the participant must spend on the fake home screen before "Continue" appears.
-  feedMinSeconds: 6,
-
-  // Ask for a participant code first (the same code used on the survey). Set false to skip.
-  askForCode: true,
-  codeHint: "Use the same code you wrote on your survey (first pet's name + two digits, for example).",
-
-  // Questions shown after the reveal screen. type: "single" | "scale" | "multi" | "perms".
-  // "perms" builds its options from the permissions list above, plus "None".
-  reflection: [
-    {
-      key: "know",
-      type: "single",
-      text: "Before this screen, did you know what each permission lets an app do?",
-      options: ["Yes", "Sort of", "No"]
+  // Approved wording (IRB Appendix F). Do not change without an approved amendment.
+  wording: {
+    welcome: "Welcome to StudySpot, a sample study-helper app. Tap Start to try it.",
+    start: "Start",
+    // Shown in Version B only. Version A shows the same screen with this space left empty.
+    reasons: {
+      location: "StudySpot uses your location to show study spots near you.",
+      camera: "StudySpot uses your camera to scan your notes.",
+      microphone: "StudySpot uses your microphone to record voice notes."
     },
-    {
-      key: "think",
-      type: "scale",
-      text: "How much did you think about each request before tapping?",
-      min: 1, max: 5, minLabel: "Not at all", maxLabel: "A lot"
-    },
-    {
-      key: "change",
-      type: "perms",
-      text: "Now that you know, which choices would you change?"
-    }
-  ],
+    proceed: "Continue",
+    thanks: "Thanks for trying StudySpot! Tap Continue for a short survey."
+  },
 
-  // Debrief text shown after the reveal. Edit to match the approved consent and debrief language.
-  debrief: [
-    "Nearlo is not a real app. It was built for a student research study on how people respond to app permission requests.",
-    "Nothing was collected from your phone. Your location, camera, microphone, and notifications were never read, recorded, or stored. The only things saved are your yes or no choices, how long each one took, and your answers on the last screen.",
-    "Because this page ran in your browser, any permission you allowed applies only to this web page. You can remove it now using the steps below."
-  ],
+  // true:  Version A asks as soon as each permission screen appears (the approved design).
+  //        Version B shows its sentence and asks after a Continue tap.
+  //        One exception: after a reload, the screen in progress waits for Continue in
+  //        both versions, because a prompt fired by a page load has no tap behind it.
+  // false: both versions ask after one Continue tap per screen. Use this if phone browsers
+  //        do not show prompts reliably without a fresh tap, and update the IRB wording to match.
+  autoPromptVersionA: true,
 
-  // Optional: where results go. Leave both blank to have participants copy the result code by hand.
-  // 1) A Google Form with one short-answer question: paste the form's /viewform URL and the field's entry id.
-  formUrl: "",
-  formField: "",
-  // 2) Any endpoint that accepts a JSON POST (for example a Google Apps Script web app).
-  submitUrl: "",
+  // The Google Form. Use the form's long /viewform address (not a forms.gle short link),
+  // and the entry IDs from the form's "Get pre-filled link".
+  formUrl: "https://docs.google.com/forms/d/e/REPLACE_WITH_FORM_ID/viewform",
+  formEntries: {
+    version: "entry.REPLACE_VERSION",
+    location: "entry.REPLACE_LOCATION",
+    camera: "entry.REPLACE_CAMERA",
+    microphone: "entry.REPLACE_MICROPHONE",
+    appCode: "entry.REPLACE_APP_CODE"
+  },
 
-  // Timeouts (milliseconds).
+  // Must match the form's answer choices character for character, or Google Forms drops the
+  // prefilled answer. Check the apostrophe in "Don't Allow": the form must use the same
+  // straight ' typed here, not a curly one pasted from a document.
+  labels: {
+    allow: "Allow",
+    deny: "Don't Allow",
+    notShown: "Prompt not shown"
+  },
+
+  // An answer that comes back faster than this (milliseconds) was not a person tapping a
+  // prompt; the browser answered by itself without asking, so it is coded "Prompt not shown".
+  // The elapsed time is used once for this decision and never stored.
+  instantAnswerMs: 500,
+
+  // How long to wait for a location answer (milliseconds).
   locationTimeoutMs: 30000
 };

@@ -1,0 +1,13 @@
+{
+  "name": "studyspot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StudySpot: a sample study-helper app page used in a student research study",
+  "scripts": {
+    "serve": "node tests/serve.js",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0"
+  }
+}

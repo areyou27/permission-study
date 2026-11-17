@@ -4,3 +4,8 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# tests
+node_modules/
+test-results/
+playwright-report/

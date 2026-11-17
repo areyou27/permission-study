@@ -1,110 +1,98 @@
-/* Decodes NRL1 result codes into rows and a CSV. Runs entirely in the browser. */
+/* Decodes StudySpot app codes (for example SS1-B-ADN) into rows and a CSV.
+   Runs entirely in the browser; nothing is uploaded. */
 (function () {
   'use strict';
   var CFG = window.STUDY_CONFIG || {};
+  var LABELS = CFG.labels || {};
   var $ = function (id) { return document.getElementById(id); };
-  var KEYS = { L: 'location', N: 'notifications', C: 'camera', M: 'microphone', K: 'contacts' };
-  var RESULTS = { G: 'granted', D: 'denied', M: 'dismissed', P: 'pre_declined', U: 'unsupported', X: 'no_device', T: 'timeout', E: 'error', S: 'skipped' };
+  var PERMS = ['location', 'camera', 'microphone'];           // letter order in the code
+  var OUTCOME = {
+    A: LABELS.allow || 'Allow',
+    D: LABELS.deny || "Don't Allow",
+    N: LABELS.notShown || 'Prompt not shown'
+  };
+  // P (optional, pilot) + SS1 + version + three outcome letters
+  var CODE = /(^|[^A-Za-z0-9])(P?)SS1-([AB])-([ADN])([ADN])([ADN])(?![A-Za-z0-9])/g;
   var rows = [];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
-  var ANSWERED = { granted: 1, denied: 1, pre_declined: 1, dismissed: 1 };
-  function reflectionLabel(key, values, perms) {
-    var q = (CFG.reflection || []).filter(function (x) { return x.key === key; })[0];
-    if (!q || !values || values === '-') return values || '';
-    var vals = values.split(',');
-    if (q.type === 'scale') return vals.join(',');
-    if (q.type === 'perms') {
-      // The app built these options from the permissions that got a real answer, in order, then "None".
-      var opts = perms.filter(function (p) { return ANSWERED[p.result]; }).map(function (p) { return p.permission; }).concat(['None']);
-      return vals.map(function (v) { return opts[parseInt(v, 10) - 1] || v; }).join(', ');
-    }
-    if (q.options) return vals.map(function (v) { return q.options[parseInt(v, 10) - 1] || v; }).join(', ');
-    return values;
-  }
-
-  function parseLine(line, n) {
-    var parts = line.trim().split(';');
-    if (parts[0] !== 'NRL1') throw new Error('Line ' + n + ': does not start with NRL1');
-    var base = { line: n };
-    var perms = [];
-    var reflect = {};
-    for (var i = 1; i < parts.length; i++) {
-      var eq = parts[i].indexOf('=');
-      if (eq < 0) continue;
-      var k = parts[i].slice(0, eq), v = parts[i].slice(eq + 1);
-      if (KEYS[k]) {
-        var f = v.split('/');
-        perms.push({ permission: KEYS[k], result: RESULTS[f[0]] || f[0], mode: f[1] || '', prior: f[2] || '', sec_pre: f[3] || '', sec_prompt: f[4] || '', detail: (f[5] && f[5] !== '-') ? f[5] : '' });
-      } else if (k.indexOf('r_') === 0) {
-        reflect[k.slice(2)] = v;
-      } else {
-        base[k] = v;
+  // Finds every code in the pasted text, so a whole spreadsheet column or CSV can be pasted as is.
+  function parse(input) {
+    var out = [];
+    var lines = String(input).split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var m;
+      CODE.lastIndex = 0;
+      while ((m = CODE.exec(lines[i])) !== null) {
+        out.push({
+          line: i + 1,
+          app_code: m[2] + 'SS1-' + m[3] + '-' + m[4] + m[5] + m[6],
+          pilot: m[2] === 'P' ? 'yes' : 'no',
+          version: m[3],
+          location: OUTCOME[m[4]],
+          camera: OUTCOME[m[5]],
+          microphone: OUTCOME[m[6]]
+        });
       }
     }
-    if (!perms.length) throw new Error('Line ' + n + ': no permission fields found');
-    return perms.map(function (p, i) {
-      var r = { participant: base.id || '', condition: base.c || '', platform: base.p || '', secure: base.sec || '', permission: p.permission, order: i + 1, result: p.result, mode: p.mode, prior_state: p.prior, sec_pre: p.sec_pre, sec_prompt: p.sec_prompt, detail: p.detail, sec_home: base.feed || '', ad: base.ad === 'T' ? 'targeted' : (base.ad === 'G' ? 'generic' : ''), total_sec: base.total || '', started_at: base.t || '' };
-      Object.keys(reflect).forEach(function (rk) { r['reflect_' + rk] = reflect[rk]; r['reflect_' + rk + '_label'] = reflectionLabel(rk, reflect[rk], perms); });
-      return r;
-    });
+    return out;
   }
 
   function decode() {
-    var lines = $('in').value.split(/\r?\n/).filter(function (l) { return l.trim(); });
-    var errors = [];
-    rows = [];
-    lines.forEach(function (l, i) {
-      try { rows = rows.concat(parseLine(l, i + 1)); } catch (e) { errors.push(e.message); }
-    });
-    $('errors').innerHTML = errors.map(function (e) { return '<p class="err">' + esc(e) + '</p>'; }).join('');
+    var input = $('in').value;
+    rows = parse(input);
+    var nonEmpty = input.split(/\r?\n/).filter(function (l) { return l.trim(); });
+    var withCode = {};
+    rows.forEach(function (r) { withCode[r.line] = 1; });
+    var missed = [];
+    var lines = input.split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) if (lines[i].trim() && !withCode[i + 1]) missed.push(i + 1);
+    $('errors').innerHTML = missed.length && nonEmpty.length
+      ? '<p class="err">No app code found on line' + (missed.length > 1 ? 's ' : ' ') + esc(missed.slice(0, 20).join(', ')) + (missed.length > 20 ? ', and more' : '') + '.</p>'
+      : '';
     render();
     $('btn-csv').disabled = !rows.length;
   }
 
   function render() {
     if (!rows.length) { $('summary').hidden = true; $('rows').hidden = true; return; }
-    var cols = Object.keys(rows[0]);
-    rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (cols.indexOf(k) < 0) cols.push(k); }); });
+    var cols = ['line', 'app_code', 'pilot', 'version', 'location', 'camera', 'microphone'];
     var html = '<table><thead><tr>' + cols.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>';
     rows.forEach(function (r) { html += '<tr>' + cols.map(function (c) { return '<td>' + esc(r[c]) + '</td>'; }).join('') + '</tr>'; });
     html += '</tbody></table>';
     $('rows-table').innerHTML = html;
     $('rows').hidden = false;
 
-    var agg = {};
-    rows.forEach(function (r) {
-      if (r.result !== 'granted' && r.result !== 'denied' && r.result !== 'pre_declined' && r.result !== 'dismissed') return;
-      var k = r.permission + '|' + r.condition;
-      agg[k] = agg[k] || { permission: r.permission, condition: r.condition, n: 0, granted: 0, participants: {} };
-      agg[k].n += 1;
-      if (r.result === 'granted') agg[k].granted += 1;
-      agg[k].participants[r.participant] = 1;
-    });
-    var keys = Object.keys(agg).sort();
-    var s = '<table><thead><tr><th>Permission</th><th>Condition</th><th>Decisions</th><th>Allowed</th><th>Allowed %</th></tr></thead><tbody>';
-    keys.forEach(function (k) {
-      var a = agg[k];
-      s += '<tr><td>' + esc(a.permission) + '</td><td>' + esc(a.condition) + '</td><td>' + a.n + '</td><td>' + a.granted + '</td><td>' + (a.n ? Math.round(100 * a.granted / a.n) : 0) + '%</td></tr>';
+    // Allow rate by version, pilot rows left out. Only prompts that were shown count as decisions.
+    var real = rows.filter(function (r) { return r.pilot === 'no'; });
+    var s = '<table><thead><tr><th>Permission</th><th>Version</th><th>Prompts shown</th><th>Allow</th><th>Allow %</th><th>Prompt not shown</th></tr></thead><tbody>';
+    PERMS.forEach(function (p) {
+      ['A', 'B'].forEach(function (v) {
+        var group = real.filter(function (r) { return r.version === v; });
+        var shown = group.filter(function (r) { return r[p] !== OUTCOME.N; });
+        var allow = shown.filter(function (r) { return r[p] === OUTCOME.A; });
+        s += '<tr><td>' + esc(p) + '</td><td>' + v + '</td><td>' + shown.length + '</td><td>' + allow.length + '</td><td>' +
+          (shown.length ? Math.round(100 * allow.length / shown.length) + '%' : '') + '</td><td>' + (group.length - shown.length) + '</td></tr>';
+      });
     });
     s += '</tbody></table>';
-    var ids = {};
-    rows.forEach(function (r) { ids[r.participant + '|' + r.started_at] = 1; });
-    s += '<p class="legend">' + Object.keys(ids).length + ' session(s) decoded. Only real answers (allowed, denied, not now, closed) count as decisions; unsupported and error results are left out.</p>';
+    var pilots = rows.length - real.length;
+    s += '<p class="legend">' + real.length + ' code(s) counted' + (pilots ? ', ' + pilots + ' pilot code(s) left out' : '') +
+      '. Version A: ' + real.filter(function (r) { return r.version === 'A'; }).length +
+      '. Version B: ' + real.filter(function (r) { return r.version === 'B'; }).length + '.</p>';
     $('summary-table').innerHTML = s;
     $('summary').hidden = false;
   }
 
   function csv(v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   function downloadCSV() {
-    var cols = [];
-    rows.forEach(function (r) { Object.keys(r).forEach(function (k) { if (cols.indexOf(k) < 0) cols.push(k); }); });
+    var cols = ['line', 'app_code', 'pilot', 'version', 'location', 'camera', 'microphone'];
     var lines = [cols.join(',')].concat(rows.map(function (r) { return cols.map(function (c) { return csv(r[c]); }).join(','); }));
     var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url; a.download = 'nearlo-results-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.href = url; a.download = 'studyspot-codes-' + new Date().toISOString().slice(0, 10) + '.csv';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }

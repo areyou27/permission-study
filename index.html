@@ -5,125 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="robots" content="noindex">
-  <title>Nearlo</title>
+  <meta name="referrer" content="no-referrer">
+  <title>StudySpot</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="phone" id="phone">
 
-  <!-- 0. Study gate: participant code -->
-  <section class="screen active" id="s-intro">
-    <div class="study-head">
-      <div class="study-tag">Research session</div>
-      <h1>Before you start</h1>
-      <p class="muted">You are about to set up an app. Go through it the way you normally would on your own phone.</p>
+  <!-- Shown instead of the app when it cannot run (research mode before setup is finished) -->
+  <section class="screen" id="s-notready">
+    <div class="splash">
+      <h1>This page is not ready yet</h1>
+      <p class="lead">Please tell the person who gave you this link.</p>
     </div>
-    <div id="intro-warnings"></div>
-    <div class="field" id="code-field">
-      <label for="code">Participant code</label>
-      <input id="code" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="e.g. milo27">
-      <div class="hint" id="code-hint"></div>
-    </div>
-    <div class="spacer"></div>
-    <button class="btn primary" id="btn-begin">Begin</button>
-    <p class="fine"><a href="decode.html" id="link-decode">Researcher tools</a></p>
+    <div id="notready-detail"></div>
   </section>
 
-  <!-- 1. Fake app splash -->
-  <section class="screen app" id="s-splash">
+  <!-- 1. Welcome (both versions) -->
+  <section class="screen app" id="s-welcome">
+    <div id="preview-notes"></div>
     <div class="splash">
       <div class="logo big" aria-hidden="true"></div>
       <h1 class="app-name" data-app></h1>
-      <p class="tagline" data-tagline></p>
+      <p class="lead" id="welcome-text"></p>
     </div>
     <div class="spacer"></div>
-    <button class="btn primary" id="btn-start">Get started</button>
-    <p class="fine">Continue as guest. No account needed.</p>
+    <div class="action">
+      <button class="btn primary" id="btn-start"></button>
+    </div>
   </section>
 
-  <!-- 2. In-app pre-prompt (reused for each permission) -->
+  <!-- 2 to 4. One screen per permission. Version A and Version B differ only in #pre-reason. -->
   <section class="screen app" id="s-pre">
-    <div class="pre">
-      <div class="step" id="pre-step"></div>
-      <div class="perm-icon" id="pre-icon" aria-hidden="true"></div>
-      <h1 id="pre-title"></h1>
-      <p id="pre-body"></p>
-    </div>
-    <div class="spacer"></div>
-    <button class="btn primary" id="btn-pre-continue">Continue</button>
-    <button class="btn ghost" id="btn-pre-notnow">Not now</button>
-    <div class="waiting" id="pre-waiting" hidden>
-      <div class="dots"><span></span><span></span><span></span></div>
-      <p class="muted">Waiting for your answer…</p>
-    </div>
-  </section>
-
-  <!-- 3. Fake home screen with feed and ad -->
-  <section class="screen app" id="s-feed">
-    <header class="topbar">
+    <header class="appbar">
       <div class="logo small" aria-hidden="true"></div>
-      <div class="topbar-title" data-app></div>
-      <div class="topbar-loc" id="feed-loc"></div>
+      <div class="appbar-title" data-app></div>
     </header>
-    <div class="toast" id="feed-toast" hidden></div>
-    <div class="feed" id="feed"></div>
-    <div class="feed-footer">
-      <button class="btn primary" id="btn-feed-continue" disabled>Continue</button>
-    </div>
-  </section>
-
-  <!-- 4. Reveal: what you agreed to -->
-  <section class="screen" id="s-reveal">
-    <div class="study-head">
-      <div class="study-tag">Pause here</div>
-      <h1>What you just agreed to</h1>
-      <p class="muted">Here is what each choice means for an app like this one.</p>
-    </div>
-    <div id="reveal-cards"></div>
-    <div id="reveal-questions"></div>
-    <button class="btn primary" id="btn-reveal-continue">Continue</button>
-  </section>
-
-  <!-- 5. Debrief -->
-  <section class="screen" id="s-debrief">
-    <div class="study-head">
-      <div class="study-tag">About this study</div>
-      <h1>Nearlo is not real</h1>
-    </div>
-    <div id="debrief-text"></div>
-    <details class="revoke" id="revoke">
-      <summary>How to remove the permissions you allowed</summary>
-      <div id="revoke-steps"></div>
-    </details>
+    <p class="reason" id="pre-reason"></p>
     <div class="spacer"></div>
-    <button class="btn primary" id="btn-debrief-continue">Finish</button>
+    <div class="action">
+      <button class="btn primary" id="btn-pre-continue"></button>
+      <div class="waiting" id="pre-waiting" role="status" aria-label="Waiting" hidden>
+        <div class="dots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
   </section>
 
-  <!-- 6. Done: result code -->
-  <section class="screen" id="s-done">
-    <div class="study-head">
-      <div class="study-tag">All done</div>
-      <h1>Thank you</h1>
-      <p class="muted" id="done-instructions">Copy your result code and paste it into the last question of the survey, or show this screen to the researcher.</p>
+  <!-- 5. Continue (both versions) -->
+  <section class="screen app" id="s-thanks">
+    <div class="splash">
+      <div class="logo big" aria-hidden="true"></div>
+      <h1 class="app-name" data-app></h1>
+      <p class="lead" id="thanks-text"></p>
     </div>
-    <div class="code-box">
-      <code id="result-code"></code>
+    <div id="preview-form" hidden></div>
+    <div class="spacer"></div>
+    <div class="action">
+      <button class="btn primary" id="btn-continue"></button>
     </div>
-    <button class="btn primary" id="btn-copy">Copy result code</button>
-    <a class="btn primary" id="btn-form" hidden target="_blank" rel="noopener">Submit through the form</a>
-    <button class="btn primary" id="btn-submit" hidden>Submit</button>
-    <div class="row">
-      <button class="btn ghost" id="btn-download-json">Download JSON</button>
-      <button class="btn ghost" id="btn-download-csv">Download CSV</button>
-    </div>
-    <p class="fine" id="done-status"></p>
-    <details class="summary">
-      <summary>Your choices</summary>
-      <div id="done-summary"></div>
-    </details>
   </section>
 
-  <!-- Simulated OS dialog (used when a real prompt is unavailable, or when simulation is on) -->
+  <!-- Simulated dialog. Preview mode with ?sim=1 only; never used with participants. -->
   <div class="dim" id="dim" hidden>
     <div class="os-dialog" id="os-dialog" role="dialog" aria-modal="true"></div>
   </div>
